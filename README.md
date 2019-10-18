@@ -1,0 +1,2 @@
+# gott
+Go Type Translator
