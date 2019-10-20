@@ -20,34 +20,41 @@ import (
 	"github.com/urfave/cli"
 )
 
-func toBase64(data interface{}) string {
-	s, isStr := data.(string)
-	if isStr {
-		return base64.StdEncoding.EncodeToString([]byte(s))
-
-	}
-
-	b, isByte := data.([]byte)
-	if isByte {
-		return base64.StdEncoding.EncodeToString([]byte(b))
-	}
-
-	return "Oops, translation failed"
+type translator struct {
+	dataType string
+	data     interface{}
 }
 
-func toHex(data interface{}) string {
-	s, isStr := data.(string)
+func (t translator) textToBase64() string {
+	// string type assertion
+	s, isString := t.data.(string)
+	if isString {
+		return base64.StdEncoding.EncodeToString([]byte(s))
+	}
+	return ""
+}
+
+func (t translator) hexToBase64() string {
+	s := t.data.(string)
+	data, err := hex.DecodeString(s)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return base64.StdEncoding.EncodeToString([]byte(data))
+}
+
+func (t translator) textToHex() string {
+	s, isString := t.data.(string)
 
 	bs, err := base64.StdEncoding.DecodeString(s)
 	if err == nil {
 		return hex.EncodeToString(bs)
 	}
 
-	if isStr {
+	if isString {
 		return hex.EncodeToString([]byte(s))
 	}
-
-	return "Oops, translation failed"
+	return ""
 }
 
 func main() {
@@ -85,13 +92,12 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				var input string
-				var data interface{}
+				var T translator
 				var res string
 
 				if c.NArg() > 0 {
-					input = c.Args().First()
-					fmt.Println("Input: ", input)
+					T.data = c.Args().First()
+					fmt.Println("Input: ", T.data)
 				} else {
 					fmt.Println("No arguments provided")
 					return nil
@@ -99,27 +105,22 @@ func main() {
 
 				// Text to base64
 				if c.String("from") == "text" && c.String("to") == "base64" {
-					data = input
-					res = toBase64(data)
+					res = T.textToBase64()
 				}
+
 				// Hex to base64
 				if c.String("from") == "hex" && c.String("to") == "base64" {
-					data, err := hex.DecodeString(input)
-					if err != nil {
-						fmt.Println(err)
-					}
-					res = toBase64(data)
+					res = T.hexToBase64()
 				}
 
 				// Text to hex
 				if c.String("from") == "text" && c.String("to") == "hex" {
-					data = input
-					res = toHex(data)
+					res = T.textToHex()
 				}
+
 				// Base64 to hex
 				if c.String("from") == "base64" && c.String("to") == "hex" {
-					data = input
-					res = toHex(data)
+					res = T.textToHex()
 				}
 
 				// TODO: Copies the result to clipboard
