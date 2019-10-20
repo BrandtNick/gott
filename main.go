@@ -5,7 +5,7 @@ Translate, decode or encode any of these types:
 - Base64
 - Hex
 - Text
-- Bytes
+- Binary
 - Decimal
 */
 package main
@@ -21,21 +21,17 @@ import (
 )
 
 type translator struct {
-	dataType string
-	data     interface{}
+	input  interface{}
+	output string
 }
 
 func (t translator) textToBase64() string {
-	// string type assertion
-	s, isString := t.data.(string)
-	if isString {
-		return base64.StdEncoding.EncodeToString([]byte(s))
-	}
-	return ""
+	s := t.input.(string)
+	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
 func (t translator) hexToBase64() string {
-	s := t.data.(string)
+	s := t.input.(string)
 	data, err := hex.DecodeString(s)
 	if err != nil {
 		fmt.Println(err)
@@ -44,17 +40,27 @@ func (t translator) hexToBase64() string {
 }
 
 func (t translator) textToHex() string {
-	s, isString := t.data.(string)
+	s := t.input.(string)
+	return hex.EncodeToString([]byte(s))
+}
 
-	bs, err := base64.StdEncoding.DecodeString(s)
-	if err == nil {
-		return hex.EncodeToString(bs)
-	}
+func (t translator) base64ToHex() string {
+	s := t.input.(string)
 
-	if isString {
-		return hex.EncodeToString([]byte(s))
+	ds, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		fmt.Println(err)
 	}
-	return ""
+	return hex.EncodeToString(ds)
+}
+
+func (t translator) textToBinary() string {
+	var b string
+	s := t.input.(string)
+	for i := 0; i < len(s); i++ {
+		b += fmt.Sprintf("%08b", byte(s[i]))
+	}
+	return b
 }
 
 func main() {
@@ -93,11 +99,10 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				var T translator
-				var res string
 
 				if c.NArg() > 0 {
-					T.data = c.Args().First()
-					fmt.Println("Input: ", T.data)
+					T.input = c.Args().First()
+					fmt.Println("Input: ", T.input)
 				} else {
 					fmt.Println("No arguments provided")
 					return nil
@@ -105,30 +110,35 @@ func main() {
 
 				// Text to base64
 				if c.String("from") == "text" && c.String("to") == "base64" {
-					res = T.textToBase64()
+					T.output = T.textToBase64()
 				}
 
 				// Hex to base64
 				if c.String("from") == "hex" && c.String("to") == "base64" {
-					res = T.hexToBase64()
+					T.output = T.hexToBase64()
 				}
 
 				// Text to hex
 				if c.String("from") == "text" && c.String("to") == "hex" {
-					res = T.textToHex()
+					T.output = T.textToHex()
 				}
 
 				// Base64 to hex
 				if c.String("from") == "base64" && c.String("to") == "hex" {
-					res = T.textToHex()
+					T.output = T.base64ToHex()
+				}
+
+				// Text to binary
+				if c.String("from") == "text" && c.String("to") == "binary" {
+					T.output = T.textToBinary()
 				}
 
 				// TODO: Copies the result to clipboard
-				if c.Bool("copy") && res != "" {
-					fmt.Println("Copied: ", res)
+				if c.Bool("copy") && T.output != "" {
+					fmt.Println("Copied: ", T.output)
 				}
 
-				fmt.Println("Result: ", res)
+				fmt.Println("Output: ", T.output)
 				return nil
 			},
 		},
