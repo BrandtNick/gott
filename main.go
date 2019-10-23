@@ -15,7 +15,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math/big"
 	"os"
+	"strings"
 
 	"github.com/urfave/cli"
 )
@@ -37,6 +39,15 @@ func (t translator) hexToBase64() string {
 		fmt.Println(err)
 	}
 	return base64.StdEncoding.EncodeToString([]byte(data))
+}
+
+func (t translator) binaryToBase64() string {
+	s := strings.Join(strings.Fields(t.input.(string)), "")
+
+	i := new(big.Int)
+	i.SetString("0b"+s, 0)
+
+	return base64.StdEncoding.EncodeToString(i.Bytes())
 }
 
 func (t translator) textToHex() string {
@@ -116,6 +127,11 @@ func main() {
 				// Hex to base64
 				if c.String("from") == "hex" && c.String("to") == "base64" {
 					T.output = T.hexToBase64()
+				}
+
+				// binary to base64
+				if c.String("from") == "binary" && c.String("to") == "base64" {
+					T.output = T.binaryToBase64()
 				}
 
 				// Text to hex
