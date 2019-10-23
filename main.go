@@ -6,7 +6,6 @@ Translate, decode or encode any of these types:
 - Hex
 - Text
 - Binary
-- Decimal
 */
 package main
 
@@ -63,6 +62,13 @@ func (t translator) base64ToHex() string {
 		fmt.Println(err)
 	}
 	return hex.EncodeToString(ds)
+}
+
+func (t translator) binaryToHex() string {
+	s := strings.Join(strings.Fields(t.input.(string)), "")
+	i := new(big.Int)
+	i.SetString("0b"+s, 0)
+	return hex.EncodeToString(i.Bytes())
 }
 
 func (t translator) textToBinary() string {
@@ -142,6 +148,11 @@ func main() {
 				// Base64 to hex
 				if c.String("from") == "base64" && c.String("to") == "hex" {
 					T.output = T.base64ToHex()
+				}
+
+				// Binary to hex
+				if c.String("from") == "binary" && c.String("to") == "hex" {
+					T.output = T.binaryToHex()
 				}
 
 				// Text to binary
