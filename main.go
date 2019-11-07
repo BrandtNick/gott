@@ -80,6 +80,36 @@ func (t translator) textToBinary() string {
 	return b
 }
 
+func (t translator) base64ToBinary() string {
+	var b string
+
+	s := t.input.(string)
+	ds, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		fmt.Println(err)
+	}
+	text := string([]byte(ds))
+	for i := 0; i < len(text); i++ {
+		b += fmt.Sprintf("%08b", byte(text[i]))
+	}
+	return b
+}
+
+func (t translator) hexToBinary() string {
+	var b string
+
+	s := t.input.(string)
+	ds, err := hex.DecodeString(s)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for i := 0; i < len(ds); i++ {
+		b += fmt.Sprintf("%08b", byte(ds[i]))
+	}
+	return b
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "Go Type Translator (GOTT)"
@@ -158,6 +188,16 @@ func main() {
 				// Text to binary
 				if c.String("from") == "text" && c.String("to") == "binary" {
 					T.output = T.textToBinary()
+				}
+
+				// Base64 to binary
+				if c.String("from") == "base64" && c.String("to") == "binary" {
+					T.output = T.base64ToBinary()
+				}
+
+				// Hex to binary
+				if c.String("from") == "hex" && c.String("to") == "binary" {
+					T.output = T.hexToBinary()
 				}
 
 				// TODO: Copies the result to clipboard
